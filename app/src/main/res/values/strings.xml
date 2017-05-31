@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">SanTools</string>
+    <string name="fileProvider">com.SanTools.fileProvider</string>
 </resources>

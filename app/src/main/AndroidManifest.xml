@@ -16,6 +16,16 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
-    </application>
+        <provider
+            android:name="android.support.v4.content.FileProvider"
+            android:authorities="@string/fileProvider"
+            android:exported="false"
+            android:grantUriPermissions="true">
 
+            <!-- 指定Uri的共享路径 -->
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths"/>
+        </provider>
+    </application>
 </manifest>

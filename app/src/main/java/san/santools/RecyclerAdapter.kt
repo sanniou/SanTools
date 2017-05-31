@@ -40,20 +40,16 @@ class RecyclerAdapter : RecyclerView.Adapter<RecyclerViewHolder>() {
         mData.addAll(list)
     }
 
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) =
+            RecyclerViewHolder(LayoutInflater.from(parent.context).inflate(mRes[viewType], parent, false))
+
     override fun onBindViewHolder(holder: RecyclerViewHolder, position: Int) {
         mBinders[holder.itemViewType](holder, mData[position])
     }
 
-
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) =
-            RecyclerViewHolder(LayoutInflater.from(parent.context).inflate(mRes[viewType], parent, false))
-
-
     override fun getItemCount() = mOnItemCount()
-
 
     override fun getItemViewType(position: Int) = mGetItemViewType(position)
 }
-
 
 class RecyclerViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView)

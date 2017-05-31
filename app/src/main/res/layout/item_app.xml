@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <san.santools.SwipeLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/swipe"
     android:layout_width="match_parent"
     android:layout_height="wrap_content">
 
@@ -11,13 +12,19 @@
         android:padding="3dp">
 
         <TextView
+            android:id="@+id/uninstall"
+            android:foreground="?attr/selectableItemBackground"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="删除"/>
+            android:padding="5dp"
+            android:text="卸载"/>
 
         <TextView
+            android:id="@+id/info"
+            android:foreground="?attr/selectableItemBackground"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:padding="5dp"
             android:text="详情"/>
     </LinearLayout>
 

@@ -4,15 +4,15 @@
 
     <item
         android:id="@+id/update_time_sort"
-        android:title="time_sort"/>
+        android:title="更新时间"/>
     <item
         android:id="@+id/first_time_sort"
-        android:title="time_sort"/>
+        android:title="安装时间"/>
     <item
         android:id="@+id/size_sort"
-        android:title="size_sort"/>
+        android:title="大小"/>
     <item
         android:id="@+id/name_sort"
-        android:title="name_sort"/>
+        android:title="程序名"/>
 
 </menu>

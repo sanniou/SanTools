@@ -1,10 +1,12 @@
 package san.santools
 
 import android.app.AlertDialog
+import android.content.Intent
 import android.content.pm.ApplicationInfo
 import android.content.pm.ApplicationInfo.FLAG_SYSTEM
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager.*
+import android.net.Uri
 import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.DividerItemDecoration
@@ -17,6 +19,7 @@ import kotlinx.android.synthetic.main.item_switch.view.*
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
+
 
 /**
  * 简单功能，就不做mvp了
@@ -40,8 +43,19 @@ class AppsActivity : AppCompatActivity() {
                 register(AppItem::class.java, R.layout.item_app) {
                     holder, item ->
                     holder.itemView.run {
+                        uninstall.setOnClickListener {
+                            val uri = Uri.parse("package:" + item.packageName)
+                            val intent = Intent(Intent.ACTION_DELETE, uri)
+                            this.context.startActivity(intent)
+                        }
+                        info.setOnClickListener {
+                            val intent = Intent("android.settings.APPLICATION_DETAILS_SETTINGS")
+                            intent.data = Uri.parse("package:" + item.packageName)
+                            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            this.context.startActivity(intent)
+                        }
                         //FIXME 此处在onBindViewHolder(),不合理的监听器设置写法
-                        app_name.text = "${item.name} \n ${item.size} b\n ${item.versionCode} \n ${item.versionName}"
+                        app_name.text = "${item.lastTime}???${item.name} \n ${item.size} b\n ${item.versionCode} \n ${item.versionName}"
                         app_name.setOnClickListener {
                             AlertDialog.Builder(this@AppsActivity).setMessage(item.allInfo).show()
                         }
@@ -90,10 +104,11 @@ class AppsActivity : AppCompatActivity() {
         val adapter = recycler.adapter as RecyclerAdapter
         mAppList.sortWith(Comparator { o1, o2 ->
             when (item?.itemId) {
-                R.id.update_time_sort -> (o1.lastTime - o2.lastTime).toInt()
-                R.id.first_time_sort -> (o1.firstTime - o2.firstTime).toInt()
-                R.id.size_sort -> (o1.size - o2.size).toInt()
-                R.id.name_sort -> o1.name[0] - o2.name[0]
+            //TODO 瞎写的规则
+                R.id.update_time_sort -> o2.lastTime.compareTo(o1.lastTime)
+                R.id.first_time_sort -> o2.firstTime.compareTo(o2.firstTime)
+                R.id.size_sort -> o2.size.compareTo(o1.size)
+                R.id.name_sort -> o2.name[0].compareTo(o1.name[0])
                 else -> 0
             }
         })
@@ -137,6 +152,7 @@ class AppsActivity : AppCompatActivity() {
                                     p.lastUpdateTime,
                                     p.versionCode,
                                     p.versionName ?: "",
+                                    p.packageName,
                                     getLaunchIntentForPackage(p.packageName),
                                     File(b.publicSourceDir).length(),
                                     allInfo(p, b)
@@ -153,6 +169,42 @@ val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
 fun allInfo(p: PackageInfo, b: ApplicationInfo) =
         "firstInstallTime : ${p.firstInstallTime}\n ${dateFormat.format(Date(p.firstInstallTime))} \n" +
                 "lastUpdateTime : ${p.lastUpdateTime}\n ${dateFormat.format(Date(p.lastUpdateTime))} \n" +
+                "versionName : ${p.versionName}\n" +
+                "versionCode : ${p.versionCode}\n" +
+                "packageName : ${p.packageName}\n" +
+                "splitNames : ${p.splitNames}\n" +
+                "sharedUserLabel : ${p.sharedUserLabel}\n" +
+                "name : ${b.name}\n" +
+                "labelRes ： ${b.labelRes}\n" +
+                "nonLocalizedLabel ： ${b.nonLocalizedLabel}\n" +
+                "icon ：${b.icon}\n" +
+                "banner ：${b.banner}\n" +
+                "logo ：${b.logo}\n" +
+                "taskAffinity ：${b.taskAffinity}\n" +
+                "permission ：${b.permission}\n" +
+                "processName : ${b.processName}\n" +
+                "className : ${b.className}\n" +
+                "descriptionRes : ${b.descriptionRes}\n" +
+                "theme : ${b.theme}\n" +
+                "flags: ${b.flags}\n" +
+                "requiresSmallestWidthDp: ${b.requiresSmallestWidthDp}\n" +
+                "compatibleWidthLimitDp: ${b.compatibleWidthLimitDp}\n" +
+                "largestWidthLimitDp: ${b.largestWidthLimitDp}\n" +
+                "manageSpaceActivityName： ${b.manageSpaceActivityName}\n" +
+                "backupAgentName ： ${b.backupAgentName}\n" +
+                "sourceDir : ${b.sourceDir}\n" +
+                "publicSourceDir : ${b.publicSourceDir}\n" +
+                "splitSourceDirs: ${b.splitSourceDirs}\n" +
+                "splitPublicSourceDirs : ${b.splitPublicSourceDirs}\n" +
+                "sharedLibraryFiles : ${b.sharedLibraryFiles}\n" +
+                "dataDir ： ${b.dataDir}\n" +
+                "deviceProtectedDataDir : ${b.deviceProtectedDataDir}\n" +
+                "nativeLibraryDir : ${b.nativeLibraryDir}\n" +
+                "uid : ${b.uid}\n" +
+                "uiOptions : ${b.uiOptions}\n" +
+                "minSdkVersion : ${b.minSdkVersion}\n" +
+                "targetSdkVersion : ${b.targetSdkVersion}\n" +
+                "enabled : ${b.enabled}\n" +
                 "activities : ${p.activities
                         ?.fold(StringBuilder()) {
                             str, item ->
@@ -194,41 +246,5 @@ fun allInfo(p: PackageInfo, b: ApplicationInfo) =
                             str.append(item.toCharsString()).append("\n")
                         }
                 }\n" +
-                "versionName : ${p.versionName}\n" +
-                "versionCode : ${p.versionCode}\n" +
-                "packageName : ${p.packageName}\n" +
-                "splitNames : ${p.splitNames}\n" +
-                "sharedUserLabel : ${p.sharedUserLabel}\n" +
-                "name : ${b.name}\n" +
-                "labelRes ： ${b.labelRes}\n" +
-                "nonLocalizedLabel ： ${b.nonLocalizedLabel}\n" +
-                "icon ：${b.icon}\n" +
-                "banner ：${b.banner}\n" +
-                "logo ：${b.logo}\n" +
-                "taskAffinity ：${b.taskAffinity}\n" +
-                "permission ：${b.permission}\n" +
-                "processName : ${b.processName}\n" +
-                "className : ${b.className}\n" +
-                "descriptionRes : ${b.descriptionRes}\n" +
-                "theme : ${b.theme}\n" +
-                "flags: ${b.flags}\n" +
-                "requiresSmallestWidthDp: ${b.requiresSmallestWidthDp}\n" +
-                "compatibleWidthLimitDp: ${b.compatibleWidthLimitDp}\n" +
-                "largestWidthLimitDp: ${b.largestWidthLimitDp}\n" +
-                "manageSpaceActivityName： ${b.manageSpaceActivityName}\n" +
-                "backupAgentName ： ${b.backupAgentName}\n" +
-                "sourceDir : ${b.sourceDir}\n" +
-                "publicSourceDir : ${b.publicSourceDir}\n" +
-                "splitSourceDirs: ${b.splitSourceDirs}\n" +
-                "splitPublicSourceDirs : ${b.splitPublicSourceDirs}\n" +
-                "sharedLibraryFiles : ${b.sharedLibraryFiles}\n" +
-                "dataDir ： ${b.dataDir}\n" +
-                "deviceProtectedDataDir : ${b.deviceProtectedDataDir}\n" +
-                "nativeLibraryDir : ${b.nativeLibraryDir}\n" +
-                "uid : ${b.uid}\n" +
-                "uiOptions : ${b.uiOptions}\n" +
-                "minSdkVersion : ${b.minSdkVersion}\n" +
-                "targetSdkVersion : ${b.targetSdkVersion}\n" +
-                "enabled : ${b.enabled}\n" +
                 ""
 

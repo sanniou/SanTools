@@ -11,5 +11,7 @@ import android.graphics.drawable.Drawable
  */
 data class AppItem(val name: String, val icon: Drawable, val isSystemApp: Boolean,
                    val firstTime: Long, val lastTime: Long,
-                   val versionCode:Int,val versionName: String,
+                   val versionCode: Int, val versionName: String,
+                   val packageName: String,
                    val intent: Intent?, val size: Long, val allInfo: String)
+
