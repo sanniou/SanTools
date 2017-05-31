@@ -1,7 +1,10 @@
 package san.santools
 
 import android.app.AlertDialog
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.ApplicationInfo
 import android.content.pm.ApplicationInfo.FLAG_SYSTEM
 import android.content.pm.PackageInfo
@@ -55,7 +58,7 @@ class AppsActivity : AppCompatActivity() {
                             this.context.startActivity(intent)
                         }
                         //FIXME 此处在onBindViewHolder(),不合理的监听器设置写法
-                        app_name.text = "${item.lastTime}???${item.name} \n ${item.size} b\n ${item.versionCode} \n ${item.versionName}"
+                        app_name.text = "${item.name} \n ${item.size} b\n ${item.versionCode} \n ${item.versionName}"
                         app_name.setOnClickListener {
                             AlertDialog.Builder(this@AppsActivity).setMessage(item.allInfo).show()
                         }
@@ -79,11 +82,11 @@ class AppsActivity : AppCompatActivity() {
                                 _, isChecked ->
                                 mIsAll = isChecked
                                 if (isChecked) {
-                                    updateData(mAppList, recycler.adapter as RecyclerAdapter)
+                                    updateData(mAppList)
                                 } else {
                                     mAppList.filter { !it.isSystemApp }
                                             .run {
-                                                updateData(this, recycler.adapter as RecyclerAdapter)
+                                                updateData(this)
                                             }
                                 }
                             }
@@ -92,6 +95,33 @@ class AppsActivity : AppCompatActivity() {
 
             }
         }
+
+        registerReceiver(object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                recycler.snackBar(intent?.dataString ?: "empty")
+                when (intent?.action) {
+                    "android.intent.action.PACKAGE_REMOVED" -> {
+                        mAppList.iterator().apply {
+                            forEach {
+                                Loge(it.packageName)
+                                if (it.packageName == intent.dataString) {
+                                    this.remove()
+                                    updateData(mAppList)
+                                    return@apply
+                                }
+                            }
+                        }
+                    }
+                    else -> {
+                    }
+                }
+            }
+        }, IntentFilter("android.intent.action.PACKAGE_ADDED").apply {
+            addAction(Intent.ACTION_PACKAGE_ADDED)
+            addAction(Intent.ACTION_PACKAGE_REMOVED)
+            addDataScheme("package")
+        })
+
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
@@ -101,24 +131,23 @@ class AppsActivity : AppCompatActivity() {
 
     override fun onOptionsItemSelected(item: MenuItem?): Boolean {
         mIsAll = true
-        val adapter = recycler.adapter as RecyclerAdapter
         mAppList.sortWith(Comparator { o1, o2 ->
             when (item?.itemId) {
             //TODO 瞎写的规则
                 R.id.update_time_sort -> o2.lastTime.compareTo(o1.lastTime)
-                R.id.first_time_sort -> o2.firstTime.compareTo(o2.firstTime)
+                R.id.first_time_sort -> o2.firstTime.compareTo(o1.firstTime)
                 R.id.size_sort -> o2.size.compareTo(o1.size)
-                R.id.name_sort -> o2.name[0].compareTo(o1.name[0])
+                R.id.name_sort -> o2.name.compareTo(o1.name)
                 else -> 0
             }
         })
 
-        updateData(mAppList, adapter)
+        updateData(mAppList)
         recycler.snackBar(item?.title.toString())
         return super.onOptionsItemSelected(item)
     }
 
-    private fun updateData(sortedWith: List<AppItem>, adapter: RecyclerAdapter) {
+    private fun updateData(sortedWith: List<AppItem>, adapter: RecyclerAdapter = recycler.adapter as RecyclerAdapter) {
         mList.clear()
         mList.add(b)
         mList.addAll(sortedWith)
