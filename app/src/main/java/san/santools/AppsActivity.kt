@@ -7,6 +7,7 @@ import android.content.pm.PackageInfo
 import android.content.pm.PackageManager.*
 import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
+import android.support.v7.widget.DividerItemDecoration
 import android.support.v7.widget.LinearLayoutManager
 import android.view.Menu
 import android.view.MenuItem
@@ -14,69 +15,67 @@ import kotlinx.android.synthetic.main.activity_apps.*
 import kotlinx.android.synthetic.main.item_app.view.*
 import kotlinx.android.synthetic.main.item_switch.view.*
 import java.io.File
+import java.text.SimpleDateFormat
+import java.util.*
 
 /**
  * 简单功能，就不做mvp了
  */
 class AppsActivity : AppCompatActivity() {
 
+    val mList = mutableListOf<Any>()
+    val mAppList = mutableListOf<AppItem>()
+    val b: String = "应用"
+    var mIsAll = true
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_apps)
         setSupportActionBar(toolbar)
-        val s = mutableListOf<Any>()
-        val b: String = "应用"
-        error(b)
-        s.add(b)
-        getAppList(s)
+        getAppList(mAppList)
         recycler.run {
+            addItemDecoration(DividerItemDecoration(this@AppsActivity, DividerItemDecoration.VERTICAL))
             layoutManager = LinearLayoutManager(this@AppsActivity)
             adapter = RecyclerAdapter().apply {
                 register(AppItem::class.java, R.layout.item_app) {
                     holder, item ->
                     holder.itemView.run {
-                        //FIXME 不合理的监听器设置写法
-                        app_name.text = "${item.name} \n ${item.size} b"
+                        //FIXME 此处在onBindViewHolder(),不合理的监听器设置写法
+                        app_name.text = "${item.name} \n ${item.size} b\n ${item.versionCode} \n ${item.versionName}"
                         app_name.setOnClickListener {
                             AlertDialog.Builder(this@AppsActivity).setMessage(item.allInfo).show()
                         }
                         app_icon.setImageDrawable(item.icon)
                         app_icon.setOnClickListener {
-                            item.intent?.run {
-                                startActivity(item.intent)
-                            }
-                                    ?: run {
-                                recycler.snackBar("启动个p")
-                            }
+                            item.intent
+                                    ?.run { startActivity(item.intent) }
+                                    ?: run { recycler.snackBar("启动个p") }
                         }
                     }
                 }
                 register(String::class.java, R.layout.item_switch) {
-                    holder, item ->
-                    //FIXME 不合理的监听器设置写法
+                    holder, _ ->
+                    //FIXME 此处在onBindViewHolder(),不合理的监听器设置写法
                     holder.itemView
-                            .app_switch
-                            .setOnCheckedChangeListener { _, isChecked ->
+                            .app_switch.apply {
+                        setOnCheckedChangeListener(null)
+                        isChecked.takeIf { it != mIsAll }?.run { isChecked = mIsAll }
+                    }
+                            .setOnCheckedChangeListener {
+                                _, isChecked ->
+                                mIsAll = isChecked
                                 if (isChecked) {
-                                    setData(s)
-                                    supportActionBar?.title = "$item：${s.size}"
-                                    notifyDataSetChanged()
-                                    return@setOnCheckedChangeListener
-                                }
-                                s.filter {
-                                    when (it) {
-                                        is AppItem -> !it.isSystemApp
-                                        else -> true
-                                    }
-                                }.run {
-                                    setData(this)
-                                    supportActionBar?.title = "$item：${this.size}"
-                                    notifyDataSetChanged()
+                                    updateData(mAppList, recycler.adapter as RecyclerAdapter)
+                                } else {
+                                    mAppList.filter { !it.isSystemApp }
+                                            .run {
+                                                updateData(this, recycler.adapter as RecyclerAdapter)
+                                            }
                                 }
                             }
                 }
-                setData(s)
-                supportActionBar?.title = "应用：${s.size}"
+                updateData(mAppList, this)
+
             }
         }
     }
@@ -87,12 +86,36 @@ class AppsActivity : AppCompatActivity() {
     }
 
     override fun onOptionsItemSelected(item: MenuItem?): Boolean {
+        mIsAll = true
+        val adapter = recycler.adapter as RecyclerAdapter
+        mAppList.sortWith(Comparator { o1, o2 ->
+            when (item?.itemId) {
+                R.id.update_time_sort -> (o1.lastTime - o2.lastTime).toInt()
+                R.id.first_time_sort -> (o1.firstTime - o2.firstTime).toInt()
+                R.id.size_sort -> (o1.size - o2.size).toInt()
+                R.id.name_sort -> o1.name[0] - o2.name[0]
+                else -> 0
+            }
+        })
+
+        updateData(mAppList, adapter)
         recycler.snackBar(item?.title.toString())
         return super.onOptionsItemSelected(item)
     }
 
-    private fun getAppList(list: MutableList<Any>) =
+    private fun updateData(sortedWith: List<AppItem>, adapter: RecyclerAdapter) {
+        mList.clear()
+        mList.add(b)
+        mList.addAll(sortedWith)
+        adapter.setData(mList)
+        adapter.notifyDataSetChanged()
+        supportActionBar?.title = "应用：${mList.size - 1
+        }"
+    }
+
+    private fun getAppList(list: MutableList<AppItem>) =
             packageManager.run {
+                //狂立flag
                 getInstalledPackages(GET_ACTIVITIES
                         or GET_SIGNATURES
                         or GET_SERVICES
@@ -101,17 +124,19 @@ class AppsActivity : AppCompatActivity() {
                         or GET_RECEIVERS
                         or GET_URI_PERMISSION_PATTERNS
                         or GET_PERMISSIONS)
-                        //使用fold 因为可以返回其他类型
+                        //使用fold 因为可以遍历同时返回其他类型
                         .fold(list) {
                             cl, p ->
                             val b = p.applicationInfo
                             cl.add(AppItem(
                                     getApplicationLabel(b).toString(),
-                                    //                                    allInfo(p, b),
+                                    //allInfo(p, b),
                                     b.loadIcon(this),
                                     b.flags and FLAG_SYSTEM != 0,
                                     p.firstInstallTime,
                                     p.lastUpdateTime,
+                                    p.versionCode,
+                                    p.versionName ?: "",
                                     getLaunchIntentForPackage(p.packageName),
                                     File(b.publicSourceDir).length(),
                                     allInfo(p, b)
@@ -123,9 +148,11 @@ class AppsActivity : AppCompatActivity() {
             }
 }
 
+val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+
 fun allInfo(p: PackageInfo, b: ApplicationInfo) =
-        "firstInstallTime : ${p.firstInstallTime}\n" +
-                "lastUpdateTime : ${p.lastUpdateTime}\n" +
+        "firstInstallTime : ${p.firstInstallTime}\n ${dateFormat.format(Date(p.firstInstallTime))} \n" +
+                "lastUpdateTime : ${p.lastUpdateTime}\n ${dateFormat.format(Date(p.lastUpdateTime))} \n" +
                 "activities : ${p.activities
                         ?.fold(StringBuilder()) {
                             str, item ->

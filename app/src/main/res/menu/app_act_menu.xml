@@ -3,13 +3,16 @@
     >
 
     <item
-        android:id="@+id/app_all"
-        android:title="@string/app_name"/>
+        android:id="@+id/update_time_sort"
+        android:title="time_sort"/>
     <item
-        android:id="@+id/app_all2"
-        android:title="@string/app_name"/>
+        android:id="@+id/first_time_sort"
+        android:title="time_sort"/>
     <item
-        android:id="@+id/app_all3"
-        android:title="@string/app_name"/>
+        android:id="@+id/size_sort"
+        android:title="size_sort"/>
+    <item
+        android:id="@+id/name_sort"
+        android:title="name_sort"/>
 
 </menu>
