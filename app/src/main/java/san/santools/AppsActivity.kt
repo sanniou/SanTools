@@ -34,6 +34,30 @@ class AppsActivity : AppCompatActivity() {
     val b: String = "应用"
     var mIsAll = true
 
+
+    val mReceiver: BroadcastReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            recycler.snackBar(intent?.dataString ?: "empty")
+            when (intent?.action) {
+                Intent.ACTION_PACKAGE_REMOVED -> {
+                    mAppList.iterator().apply {
+                        forEach {
+                            if ("package:${it.packageName}" == intent.dataString) {
+                                this.remove()
+                                updateData(mAppList)
+                                return@apply
+                            }
+                        }
+                    }
+                }
+                Intent.ACTION_PACKAGE_ADDED -> {
+                    //TODO
+                }
+            }
+        }
+    }
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_apps)
@@ -96,32 +120,17 @@ class AppsActivity : AppCompatActivity() {
             }
         }
 
-        registerReceiver(object : BroadcastReceiver() {
-            override fun onReceive(context: Context?, intent: Intent?) {
-                recycler.snackBar(intent?.dataString ?: "empty")
-                when (intent?.action) {
-                    "android.intent.action.PACKAGE_REMOVED" -> {
-                        mAppList.iterator().apply {
-                            forEach {
-                                Loge(it.packageName)
-                                if (it.packageName == intent.dataString) {
-                                    this.remove()
-                                    updateData(mAppList)
-                                    return@apply
-                                }
-                            }
-                        }
-                    }
-                    else -> {
-                    }
-                }
-            }
-        }, IntentFilter("android.intent.action.PACKAGE_ADDED").apply {
+        registerReceiver(mReceiver, IntentFilter("android.intent.action.PACKAGE_ADDED").apply {
             addAction(Intent.ACTION_PACKAGE_ADDED)
             addAction(Intent.ACTION_PACKAGE_REMOVED)
             addDataScheme("package")
         })
 
+    }
+
+    override fun onDestroy() {
+        unregisterReceiver(mReceiver)
+        super.onDestroy()
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
