@@ -136,7 +136,6 @@ class AppsActivity : android.support.v7.app.AppCompatActivity() {
     }
 
     override fun onOptionsItemSelected(item: android.view.MenuItem?): Boolean {
-        mIsAll = true
         mAppList.sortWith(java.util.Comparator { o1, o2 ->
             when (item?.itemId) {
             //TODO 瞎写的规则
@@ -157,6 +156,7 @@ class AppsActivity : android.support.v7.app.AppCompatActivity() {
         mList.clear()
         mList.add(b)
         mList.addAll(sortedWith)
+        mIsAll = true
         adapter.setData(mList)
         adapter.notifyDataSetChanged()
         supportActionBar?.title = "应用：${mList.size - 1
