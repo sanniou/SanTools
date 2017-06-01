@@ -8,3 +8,8 @@ kotlin 练手之作
 - [ ] 排序乱写的
 - [ ] 界面乱写的
 - [ ] 参照实现SwipeLayout
+
+
+------
+# Reader
+- [ ]  kotlin 重写原来的 SReader 代码
