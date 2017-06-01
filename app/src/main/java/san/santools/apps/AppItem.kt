@@ -1,4 +1,4 @@
-package san.santools
+package san.santools.apps
 
 import android.content.Intent
 import android.graphics.drawable.Drawable
