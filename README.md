@@ -11,5 +11,3 @@ kotlin 练手之作
 
 
 ------
-# Reader
-- [ ]  kotlin 重写原来的 SReader 代码

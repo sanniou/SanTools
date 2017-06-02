@@ -159,8 +159,7 @@ class AppsActivity : android.support.v7.app.AppCompatActivity() {
         mIsAll = true
         adapter.setData(mList)
         adapter.notifyDataSetChanged()
-        supportActionBar?.title = "应用：${mList.size - 1
-        }"
+        supportActionBar?.title = "应用：${mList.size - 1}"
     }
 
     //狂立flag
