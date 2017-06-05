@@ -1,11 +1,15 @@
 package san.santools.apps
 
+import android.app.ProgressDialog
+import android.content.Intent
 import android.content.pm.ApplicationInfo
 import android.content.pm.ApplicationInfo.FLAG_SYSTEM
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
 import android.content.pm.PackageManager.*
+import android.net.Uri
 import android.support.v7.widget.DividerItemDecoration
+import android.support.v7.widget.LinearLayoutManager
 import kotlinx.android.synthetic.main.activity_apps.*
 import kotlinx.android.synthetic.main.item_app.view.*
 import kotlinx.android.synthetic.main.item_switch.view.*
@@ -13,7 +17,9 @@ import san.santools.R
 import san.santools.RecyclerAdapter
 import san.santools.snackBar
 import java.io.File
+import java.text.Collator
 import java.util.*
+import kotlin.concurrent.thread
 
 
 /**
@@ -59,23 +65,24 @@ class AppsActivity : android.support.v7.app.AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(san.santools.R.layout.activity_apps)
         setSupportActionBar(toolbar)
-        getAppList(mAppList)
+
         recycler.run {
-            addItemDecoration(android.support.v7.widget.DividerItemDecoration(this@AppsActivity, DividerItemDecoration.VERTICAL))
-            layoutManager = android.support.v7.widget.LinearLayoutManager(this@AppsActivity)
-            adapter = san.santools.RecyclerAdapter().apply {
-                register(AppItem::class.java, san.santools.R.layout.item_app) {
+            addItemDecoration(DividerItemDecoration(this@AppsActivity, DividerItemDecoration.VERTICAL))
+            layoutManager = LinearLayoutManager(this@AppsActivity)
+            adapter = RecyclerAdapter().apply {
+
+                register(AppItem::class.java, R.layout.item_app) {
                     holder, item ->
                     holder.itemView.run {
                         uninstall.setOnClickListener {
-                            val uri = android.net.Uri.parse("package:" + item.packageName)
-                            val intent = android.content.Intent(android.content.Intent.ACTION_DELETE, uri)
+                            val uri = Uri.parse("package:" + item.packageName)
+                            val intent = Intent(Intent.ACTION_DELETE, uri)
                             this.context.startActivity(intent)
                         }
                         info.setOnClickListener {
-                            val intent = android.content.Intent("android.settings.APPLICATION_DETAILS_SETTINGS")
-                            intent.data = android.net.Uri.parse("package:" + item.packageName)
-                            intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                            val intent = Intent("android.settings.APPLICATION_DETAILS_SETTINGS")
+                            intent.data = Uri.parse("package:" + item.packageName)
+                            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                             this.context.startActivity(intent)
                         }
                         //FIXME 此处在onBindViewHolder(),不合理的监听器设置写法
@@ -91,14 +98,19 @@ class AppsActivity : android.support.v7.app.AppCompatActivity() {
                         }
                     }
                 }
-                register(String::class.java, san.santools.R.layout.item_switch) {
+
+                register(String::class.java, R.layout.item_switch) {
                     holder, _ ->
                     //FIXME 此处在onBindViewHolder(),不合理的监听器设置写法
                     holder.itemView
-                            .app_switch.apply {
-                        setOnCheckedChangeListener(null)
-                        isChecked.takeIf { it != mIsAll }?.run { isChecked = mIsAll }
-                    }
+                            .app_switch
+                            .apply {
+                                isChecked.takeIf { it != mIsAll }
+                                        ?.run {
+                                            setOnCheckedChangeListener(null)
+                                            isChecked = mIsAll
+                                        }
+                            }
                             .setOnCheckedChangeListener {
                                 _, isChecked ->
                                 mIsAll = isChecked
@@ -108,11 +120,20 @@ class AppsActivity : android.support.v7.app.AppCompatActivity() {
                                     mAppList.filter { !it.isSystemApp }
                                             .run {
                                                 updateData(this)
+                                                mIsAll = false
                                             }
                                 }
                             }
                 }
-                updateData(mAppList, this)
+
+                val show = ProgressDialog.show(this@AppsActivity, "", "")
+                thread {
+                    getAppList(mAppList)
+                    runOnUiThread {
+                        show.cancel()
+                        updateData(mAppList, this)
+                    }
+                }
 
             }
         }
@@ -131,7 +152,7 @@ class AppsActivity : android.support.v7.app.AppCompatActivity() {
     }
 
     override fun onCreateOptionsMenu(menu: android.view.Menu?): Boolean {
-        menuInflater.inflate(san.santools.R.menu.app_act_menu, menu)
+        menuInflater.inflate(R.menu.app_act_menu, menu)
         return super.onCreateOptionsMenu(menu)
     }
 
@@ -142,7 +163,7 @@ class AppsActivity : android.support.v7.app.AppCompatActivity() {
                 R.id.update_time_sort -> o2.lastTime.compareTo(o1.lastTime)
                 R.id.first_time_sort -> o2.firstTime.compareTo(o1.firstTime)
                 R.id.size_sort -> o2.size.compareTo(o1.size)
-                R.id.name_sort -> o2.name.compareTo(o1.name)
+                R.id.name_sort -> Collator.getInstance(Locale.CHINA).compare(o1.name, o2.name)
                 else -> 0
             }
         })
