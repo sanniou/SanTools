@@ -20,15 +20,13 @@ import android.widget.FrameLayout;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 public class SwipeLayout extends FrameLayout {
-    @Deprecated
-    public static final int EMPTY_LAYOUT = -1;
+
     private static final int DRAG_LEFT = 1;
     private static final int DRAG_RIGHT = 2;
     private static final int DRAG_TOP = 4;
@@ -45,12 +43,12 @@ public class SwipeLayout extends FrameLayout {
     private ShowMode mShowMode;
 
     private float[] mEdgeSwipesOffset = new float[4];
-
     private List<SwipeListener> mSwipeListeners = new ArrayList<>();
     private List<SwipeDenier> mSwipeDeniers = new ArrayList<>();
     private Map<View, ArrayList<OnRevealListener>> mRevealListeners = new HashMap<>();
     private Map<View, Boolean> mShowEntirely = new HashMap<>();
     private Map<View, Rect> mViewBoundCache = new HashMap<>();//save all children's bound, restore in onLayout
+
 
     private DoubleClickListener mDoubleClickListener;
 
@@ -666,24 +664,6 @@ public class SwipeLayout extends FrameLayout {
         }
     }
 
-    /**
-     * {@link android.view.View.OnLayoutChangeListener} added in API 11. I need
-     * to support it from API 8.
-     */
-    public interface OnLayout {
-        void onLayout(SwipeLayout v);
-    }
-
-    private List<OnLayout> mOnLayoutListeners;
-
-    public void addOnLayoutListener(OnLayout l) {
-        if (mOnLayoutListeners == null) mOnLayoutListeners = new ArrayList<OnLayout>();
-        mOnLayoutListeners.add(l);
-    }
-
-    public void removeOnLayoutListener(OnLayout l) {
-        if (mOnLayoutListeners != null) mOnLayoutListeners.remove(l);
-    }
 
     public void clearDragEdge() {
         mDragEdges.clear();
@@ -780,10 +760,6 @@ public class SwipeLayout extends FrameLayout {
     @Override
     protected void onLayout(boolean changed, int l, int t, int r, int b) {
         updateBottomViews();
-
-        if (mOnLayoutListeners != null) for (int i = 0; i < mOnLayoutListeners.size(); i++) {
-            mOnLayoutListeners.get(i).onLayout(this);
-        }
     }
 
     void layoutPullOut() {
@@ -1554,18 +1530,6 @@ public class SwipeLayout extends FrameLayout {
     }
 
 
-    /**
-     * Deprecated, use {@link #setDrag(DragEdge, View)}
-     */
-    @Deprecated
-    public void setDragEdge(DragEdge dragEdge) {
-        clearDragEdge();
-        if (getChildCount() >= 2) {
-            mDragEdges.put(dragEdge, getChildAt(getChildCount() - 2));
-        }
-        setCurrentDragEdge(dragEdge);
-    }
-
     public void onViewRemoved(View child) {
         for (Map.Entry<DragEdge, View> entry : new HashMap<DragEdge, View>(mDragEdges).entrySet()) {
             if (entry.getValue() == child) {
@@ -1576,53 +1540,6 @@ public class SwipeLayout extends FrameLayout {
 
     public Map<DragEdge, View> getDragEdgeMap() {
         return mDragEdges;
-    }
-
-    /**
-     * Deprecated, use {@link #getDragEdgeMap()}
-     */
-    @Deprecated
-    public List<DragEdge> getDragEdges() {
-        return new ArrayList<DragEdge>(mDragEdges.keySet());
-    }
-
-    /**
-     * Deprecated, use {@link #setDrag(DragEdge, View)}
-     */
-    @Deprecated
-    public void setDragEdges(List<DragEdge> dragEdges) {
-        clearDragEdge();
-        for (int i = 0, size = Math.min(dragEdges.size(), getChildCount() - 1); i < size; i++) {
-            DragEdge dragEdge = dragEdges.get(i);
-            mDragEdges.put(dragEdge, getChildAt(i));
-        }
-        if (dragEdges.size() == 0 || dragEdges.contains(DefaultDragEdge)) {
-            setCurrentDragEdge(DefaultDragEdge);
-        } else {
-            setCurrentDragEdge(dragEdges.get(0));
-        }
-    }
-
-    /**
-     * Deprecated, use {@link #addDrag(DragEdge, View)}
-     */
-    @Deprecated
-    public void setDragEdges(DragEdge... mDragEdges) {
-        clearDragEdge();
-        setDragEdges(Arrays.asList(mDragEdges));
-    }
-
-    /**
-     * Deprecated, use {@link #addDrag(DragEdge, View)}
-     * When using multiple drag edges it's a good idea to pass the ids of the views that
-     * you're using for the left, right, top bottom views (-1 if you're not using a particular view)
-     */
-    @Deprecated
-    public void setBottomViewIds(int leftId, int rightId, int topId, int bottomId) {
-        addDrag(DragEdge.Left, findViewById(leftId));
-        addDrag(DragEdge.Right, findViewById(rightId));
-        addDrag(DragEdge.Top, findViewById(topId));
-        addDrag(DragEdge.Bottom, findViewById(bottomId));
     }
 
     private float getCurrentOffset() {

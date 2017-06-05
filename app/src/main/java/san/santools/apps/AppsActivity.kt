@@ -8,18 +8,29 @@ import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
 import android.content.pm.PackageManager.*
 import android.net.Uri
+import android.support.v4.app.ActivityCompat
+import android.support.v4.content.ContextCompat
+import android.support.v7.view.ActionMode
+import android.support.v7.widget.AppCompatButton
 import android.support.v7.widget.DividerItemDecoration
 import android.support.v7.widget.LinearLayoutManager
+import android.view.Menu
+import android.view.MenuItem
 import kotlinx.android.synthetic.main.activity_apps.*
 import kotlinx.android.synthetic.main.item_app.view.*
 import kotlinx.android.synthetic.main.item_switch.view.*
 import san.santools.R
 import san.santools.RecyclerAdapter
+import san.santools.SwipeLayout
 import san.santools.snackBar
 import java.io.File
 import java.text.Collator
 import java.util.*
 import kotlin.concurrent.thread
+import android.R.attr.mode
+import android.view.MenuInflater
+
+
 
 
 /**
@@ -65,7 +76,6 @@ class AppsActivity : android.support.v7.app.AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(san.santools.R.layout.activity_apps)
         setSupportActionBar(toolbar)
-
         recycler.run {
             addItemDecoration(DividerItemDecoration(this@AppsActivity, DividerItemDecoration.VERTICAL))
             layoutManager = LinearLayoutManager(this@AppsActivity)
