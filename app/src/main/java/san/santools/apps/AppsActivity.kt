@@ -1,6 +1,8 @@
 package san.santools.apps
 
 import android.app.ProgressDialog
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
 import android.content.pm.ApplicationInfo
 import android.content.pm.ApplicationInfo.FLAG_SYSTEM
@@ -8,10 +10,6 @@ import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
 import android.content.pm.PackageManager.*
 import android.net.Uri
-import android.support.v4.app.ActivityCompat
-import android.support.v4.content.ContextCompat
-import android.support.v7.view.ActionMode
-import android.support.v7.widget.AppCompatButton
 import android.support.v7.widget.DividerItemDecoration
 import android.support.v7.widget.LinearLayoutManager
 import android.view.Menu
@@ -21,33 +19,25 @@ import kotlinx.android.synthetic.main.item_app.view.*
 import kotlinx.android.synthetic.main.item_switch.view.*
 import san.santools.R
 import san.santools.RecyclerAdapter
-import san.santools.SwipeLayout
 import san.santools.snackBar
 import java.io.File
 import java.text.Collator
 import java.util.*
 import kotlin.concurrent.thread
-import android.R.attr.mode
-import android.view.MenuInflater
 
 
-
-
-/**
- * 简单功能，就不做mvp了
- */
 class AppsActivity : android.support.v7.app.AppCompatActivity() {
 
-    val mList = mutableListOf<Any>()
-    val mAppList = mutableListOf<AppItem>()
-    val b: String = "应用"
-    var mIsAll = true
+    private val mList = mutableListOf<Any>()
+    private val mAppList = mutableListOf<AppItem>()
+    private val b: String = "应用"
+    private var mIsAll = true
 
 
-    val mReceiver: android.content.BroadcastReceiver = object : android.content.BroadcastReceiver() {
-        override fun onReceive(context: android.content.Context?, intent: android.content.Intent?) {
+    private val mReceiver: BroadcastReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
             when (intent?.action) {
-                android.content.Intent.ACTION_PACKAGE_REMOVED -> {
+                Intent.ACTION_PACKAGE_REMOVED -> {
                     recycler.snackBar("卸载${intent.dataString ?: "empty"}")
                     mAppList.iterator().apply {
                         forEach {
@@ -59,10 +49,10 @@ class AppsActivity : android.support.v7.app.AppCompatActivity() {
                         }
                     }
                 }
-                android.content.Intent.ACTION_PACKAGE_ADDED -> {
+                Intent.ACTION_PACKAGE_ADDED -> {
                     recycler.snackBar("安装${intent.dataString ?: "empty"}")
                     val info = packageManager.getPackageInfo(intent.dataString.substring(8), mFlag)
-                    info?.run {
+                    info.run {
                         mAppList.add(0, createAppItem(info))
                         updateData(mAppList)
                     }
@@ -74,15 +64,14 @@ class AppsActivity : android.support.v7.app.AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: android.os.Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(san.santools.R.layout.activity_apps)
+        setContentView(R.layout.activity_apps)
         setSupportActionBar(toolbar)
         recycler.run {
             addItemDecoration(DividerItemDecoration(this@AppsActivity, DividerItemDecoration.VERTICAL))
             layoutManager = LinearLayoutManager(this@AppsActivity)
             adapter = RecyclerAdapter().apply {
 
-                register(AppItem::class.java, R.layout.item_app) {
-                    holder, item ->
+                register(AppItem::class.java, R.layout.item_app) { holder, item ->
                     holder.itemView.run {
                         uninstall.setOnClickListener {
                             val uri = Uri.parse("package:" + item.packageName)
@@ -109,20 +98,19 @@ class AppsActivity : android.support.v7.app.AppCompatActivity() {
                     }
                 }
 
-                register(String::class.java, R.layout.item_switch) {
-                    holder, _ ->
+                register(String::class.java, R.layout.item_switch) { holder, _ ->
                     //FIXME 此处在onBindViewHolder(),不合理的监听器设置写法
                     holder.itemView
                             .app_switch
                             .apply {
-                                isChecked.takeIf { it != mIsAll }
-                                        ?.run {
-                                            setOnCheckedChangeListener(null)
-                                            isChecked = mIsAll
-                                        }
+                                isChecked.takeIf {
+                                    it != mIsAll
+                                }?.run {
+                                    setOnCheckedChangeListener(null)
+                                    isChecked = mIsAll
+                                }
                             }
-                            .setOnCheckedChangeListener {
-                                _, isChecked ->
+                            .setOnCheckedChangeListener { _, isChecked ->
                                 mIsAll = isChecked
                                 if (isChecked) {
                                     updateData(mAppList)
@@ -161,12 +149,12 @@ class AppsActivity : android.support.v7.app.AppCompatActivity() {
         super.onDestroy()
     }
 
-    override fun onCreateOptionsMenu(menu: android.view.Menu?): Boolean {
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
         menuInflater.inflate(R.menu.app_act_menu, menu)
         return super.onCreateOptionsMenu(menu)
     }
 
-    override fun onOptionsItemSelected(item: android.view.MenuItem?): Boolean {
+    override fun onOptionsItemSelected(item: MenuItem?): Boolean {
         mAppList.sortWith(java.util.Comparator { o1, o2 ->
             when (item?.itemId) {
             //TODO 瞎写的规则
@@ -232,9 +220,9 @@ class AppsActivity : android.support.v7.app.AppCompatActivity() {
     }
 
 
-    val dateFormat = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+    private val dateFormat = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
 
-    fun allInfo(p: PackageInfo, b: ApplicationInfo) =
+    private fun allInfo(p: PackageInfo, b: ApplicationInfo) =
             "firstInstallTime : ${p.firstInstallTime}\n ${dateFormat.format(java.util.Date(p.firstInstallTime))} \n" +
                     "lastUpdateTime : ${p.lastUpdateTime}\n ${dateFormat.format(java.util.Date(p.lastUpdateTime))} \n" +
                     "versionName : ${p.versionName}\n" +
@@ -274,43 +262,36 @@ class AppsActivity : android.support.v7.app.AppCompatActivity() {
                     "targetSdkVersion : ${b.targetSdkVersion}\n" +
                     "enabled : ${b.enabled}\n" +
                     "activities : ${p.activities
-                            ?.fold(StringBuilder()) {
-                                str, item ->
+                            ?.fold(StringBuilder()) { str, item ->
                                 str.append(item.name).append("\n")
                             }}\n" +
                     "requestedPermission : ${p.requestedPermissions
-                            ?.fold(StringBuffer()) {
-                                str, item ->
+                            ?.fold(StringBuffer()) { str, item ->
                                 str.append(item).append("\n")
                             }
                     }\n" +
                     "permission : ${p.permissions
-                            ?.fold(StringBuffer()) {
-                                str, item ->
+                            ?.fold(StringBuffer()) { str, item ->
                                 str.append(item.name).append("\n")
                             }
                     }\n" +
                     "services : ${p.services
-                            ?.fold(StringBuffer()) {
-                                str, item ->
+                            ?.fold(StringBuffer()) { str, item ->
                                 str.append(item.name).append("\n")
                             }
                     }\n" +
                     "receivers : ${p.receivers
-                            ?.fold(StringBuffer()) {
-                                str, item ->
+                            ?.fold(StringBuffer()) { str, item ->
                                 str.append(item.name).append("\n")
                             }
                     }\n" +
                     "providers : ${p.providers
-                            ?.fold(StringBuffer()) {
-                                str, item ->
+                            ?.fold(StringBuffer()) { str, item ->
                                 str.append(item.name).append("\n")
                             }
                     }\n" +
                     "signatures : ${p.signatures
-                            ?.fold(StringBuffer()) {
-                                str, item ->
+                            ?.fold(StringBuffer()) { str, item ->
                                 str.append(item.toCharsString()).append("\n")
                             }
                     }\n" +

@@ -25,9 +25,9 @@ class RecyclerAdapter : RecyclerView.Adapter<RecyclerViewHolder>() {
 
     private val mRes = mutableListOf<Int>()
 
-    private val mBinders = mutableListOf <ViewBinder<*>>()
+    private val mBinders = mutableListOf<ViewBinder<*>>()
 
-    private val mClazzs = mutableListOf <Class<out Any>>()
+    private val mClazzs = mutableListOf<Class<out Any>>()
 
     fun <T : Any> register(clazz: Class<T>, res: Int, binder: ViewBinder<T>) {
         mRes.add(res)
