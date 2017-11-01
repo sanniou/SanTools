@@ -14,6 +14,8 @@ import android.view.ViewGroup
 
 typealias ViewBinder<T> = (RecyclerViewHolder, T) -> Unit
 
+typealias ViewCreators = (RecyclerViewHolder) -> Unit
+
 class RecyclerAdapter : RecyclerView.Adapter<RecyclerViewHolder>() {
     //默认的getCount实现
     private var mOnItemCount: (() -> Int) = { mData.size }
@@ -21,30 +23,46 @@ class RecyclerAdapter : RecyclerView.Adapter<RecyclerViewHolder>() {
     //默认的getViewType实现
     private var mGetItemViewType: ((position: Int) -> Int) = { mClazzs.indexOf(mData[it].javaClass) }
 
-    private val mData = mutableListOf<Any>()
+    private lateinit var mData: List<Any>
 
     private val mRes = mutableListOf<Int>()
 
     private val mBinders = mutableListOf<ViewBinder<*>>()
 
+    private val mCreators = mutableListOf<ViewCreators?>()
+
     private val mClazzs = mutableListOf<Class<out Any>>()
 
-    fun <T : Any> register(clazz: Class<T>, res: Int, binder: ViewBinder<T>) {
+    private var mListener: OnItemClickListener? = null
+
+    fun setOnItemClickListener(listener: OnItemClickListener?) {
+        mListener = listener
+    }
+
+    fun <T : Any> registBinder(clazz: Class<T>, res: Int, binder: ViewBinder<T>, creator: ViewCreators? = null) {
         mRes.add(res)
         mClazzs.add(clazz)
         mBinders.add(binder)
+        mCreators.add(creator)
+
     }
+
 
     fun setData(list: List<Any>) {
-        mData.clear()
-        mData.addAll(list)
+        mData = list
     }
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) =
-            RecyclerViewHolder(LayoutInflater.from(parent.context).inflate(mRes[viewType], parent, false))
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerViewHolder {
+
+        val holder = RecyclerViewHolder(LayoutInflater.from(parent.context).inflate(mRes[viewType], parent, false), mListener)
+        mCreators[viewType]?.invoke(holder)
+        return holder
+    }
 
     override fun onBindViewHolder(holder: RecyclerViewHolder, position: Int) {
-        mBinders[holder.itemViewType](holder, mData[position])
+        val item = mData[position]
+        holder.put("Item", item)
+        mBinders[holder.itemViewType](holder, item)
     }
 
     override fun getItemCount() = mOnItemCount()
@@ -52,4 +70,22 @@ class RecyclerAdapter : RecyclerView.Adapter<RecyclerViewHolder>() {
     override fun getItemViewType(position: Int) = mGetItemViewType(position)
 }
 
-class RecyclerViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView)
+class RecyclerViewHolder(itemView: View, private var listener: OnItemClickListener?) : RecyclerView.ViewHolder(itemView) {
+
+    val mMap = mutableMapOf<String, Any>()
+
+    init {
+        itemView.setOnClickListener {
+            listener?.onItemClick(this)
+        }
+    }
+
+    fun put(key: String, item: Any) = mMap.put(key, item)
+
+    fun <T> get(key: String) = mMap[key] as T
+
+}
+
+interface OnItemClickListener {
+    fun onItemClick(holder: RecyclerViewHolder)
+}

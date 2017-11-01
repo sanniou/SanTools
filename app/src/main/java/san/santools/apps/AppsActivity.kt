@@ -1,15 +1,16 @@
 package san.santools.apps
 
-import android.app.ProgressDialog
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.ApplicationInfo
 import android.content.pm.ApplicationInfo.FLAG_SYSTEM
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
 import android.content.pm.PackageManager.*
 import android.net.Uri
+import android.support.v7.app.AlertDialog
 import android.support.v7.widget.DividerItemDecoration
 import android.support.v7.widget.LinearLayoutManager
 import android.view.Menu
@@ -33,19 +34,19 @@ class AppsActivity : android.support.v7.app.AppCompatActivity() {
     private val b: String = "应用"
     private var mIsAll = true
 
-
+    /**
+     * 广播
+     */
     private val mReceiver: BroadcastReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             when (intent?.action) {
                 Intent.ACTION_PACKAGE_REMOVED -> {
                     recycler.snackBar("卸载${intent.dataString ?: "empty"}")
-                    mAppList.iterator().apply {
-                        forEach {
-                            if ("package:${it.packageName}" == intent.dataString) {
-                                this.remove()
-                                updateData(mAppList)
-                                return@apply
-                            }
+                    mAppList.forEach {
+                        if ("package:${it.packageName}" == intent.dataString) {
+                            val indexOf = mAppList.indexOf(it)
+                            mAppList.remove(it)
+                            recycler.adapter.notifyItemRemoved(indexOf + 1)
                         }
                     }
                 }
@@ -53,8 +54,10 @@ class AppsActivity : android.support.v7.app.AppCompatActivity() {
                     recycler.snackBar("安装${intent.dataString ?: "empty"}")
                     val info = packageManager.getPackageInfo(intent.dataString.substring(8), mFlag)
                     info.run {
-                        mAppList.add(0, createAppItem(info))
-                        updateData(mAppList)
+                        val element = createAppItem(info)
+                        mAppList.add(0, element)
+                        mList.add(1, element)
+                        recycler.adapter.notifyItemInserted(1)
                     }
                 }
             }
@@ -70,27 +73,33 @@ class AppsActivity : android.support.v7.app.AppCompatActivity() {
             addItemDecoration(DividerItemDecoration(this@AppsActivity, DividerItemDecoration.VERTICAL))
             layoutManager = LinearLayoutManager(this@AppsActivity)
             adapter = RecyclerAdapter().apply {
-
-                register(AppItem::class.java, R.layout.item_app) { holder, item ->
+                registBinder(AppItem::class.java, R.layout.item_app, { holder, item ->
+                    holder.itemView.run {
+                        app_name.text = "${item.name} \n ${item.size} b\n ${item.versionCode} \n ${item.versionName}"
+                        app_icon.setImageDrawable(item.icon)
+                    }
+                }) { holder ->
                     holder.itemView.run {
                         uninstall.setOnClickListener {
+                            val item = holder.get<AppItem>("Item")
                             val uri = Uri.parse("package:" + item.packageName)
                             val intent = Intent(Intent.ACTION_DELETE, uri)
                             this.context.startActivity(intent)
                         }
                         info.setOnClickListener {
+                            val item = holder.get<AppItem>("Item")
                             val intent = Intent("android.settings.APPLICATION_DETAILS_SETTINGS")
                             intent.data = Uri.parse("package:" + item.packageName)
                             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                             this.context.startActivity(intent)
                         }
-                        //FIXME 此处在onBindViewHolder(),不合理的监听器设置写法
-                        app_name.text = "${item.name} \n ${item.size} b\n ${item.versionCode} \n ${item.versionName}"
+
                         app_name.setOnClickListener {
-                            android.app.AlertDialog.Builder(this@AppsActivity).setMessage(item.allInfo).show()
+                            val item = holder.get<AppItem>("Item")
+                            AlertDialog.Builder(this@AppsActivity).setMessage(item.allInfo).show()
                         }
-                        app_icon.setImageDrawable(item.icon)
                         app_icon.setOnClickListener {
+                            val item = holder.get<AppItem>("Item")
                             item.intent
                                     ?.run { startActivity(item.intent) }
                                     ?: run { recycler.snackBar("启动个p") }
@@ -98,8 +107,7 @@ class AppsActivity : android.support.v7.app.AppCompatActivity() {
                     }
                 }
 
-                register(String::class.java, R.layout.item_switch) { holder, _ ->
-                    //FIXME 此处在onBindViewHolder(),不合理的监听器设置写法
+                registBinder(String::class.java, R.layout.item_switch, { holder, _ ->
                     holder.itemView
                             .app_switch
                             .apply {
@@ -113,7 +121,7 @@ class AppsActivity : android.support.v7.app.AppCompatActivity() {
                             .setOnCheckedChangeListener { _, isChecked ->
                                 mIsAll = isChecked
                                 if (isChecked) {
-                                    updateData(mAppList)
+                                    updateData()
                                 } else {
                                     mAppList.filter { !it.isSystemApp }
                                             .run {
@@ -122,26 +130,23 @@ class AppsActivity : android.support.v7.app.AppCompatActivity() {
                                             }
                                 }
                             }
-                }
-
-                val show = ProgressDialog.show(this@AppsActivity, "", "")
-                thread {
-                    getAppList(mAppList)
-                    runOnUiThread {
-                        show.cancel()
-                        updateData(mAppList, this)
-                    }
-                }
-
+                })
+                setData(mList)
             }
         }
 
-        registerReceiver(mReceiver, android.content.IntentFilter("android.intent.action.PACKAGE_ADDED").apply {
+        //
+        registerReceiver(mReceiver, IntentFilter().apply {
             addAction(android.content.Intent.ACTION_PACKAGE_ADDED)
             addAction(android.content.Intent.ACTION_PACKAGE_REMOVED)
             addDataScheme("package")
         })
 
+        updateData()
+        thread {
+            updateAppList()
+            onItemCall(R.id.update_time_sort, "更新时间")
+        }
     }
 
     override fun onDestroy() {
@@ -155,9 +160,13 @@ class AppsActivity : android.support.v7.app.AppCompatActivity() {
     }
 
     override fun onOptionsItemSelected(item: MenuItem?): Boolean {
-        mAppList.sortWith(java.util.Comparator { o1, o2 ->
-            when (item?.itemId) {
-            //TODO 瞎写的规则
+        item?.run { onItemCall(item.itemId, item.title) }
+        return super.onOptionsItemSelected(item)
+    }
+
+    private fun onItemCall(temId: Int, title: CharSequence) {
+        mAppList.sortWith(Comparator { o1, o2 ->
+            when (temId) {
                 R.id.update_time_sort -> o2.lastTime.compareTo(o1.lastTime)
                 R.id.first_time_sort -> o2.firstTime.compareTo(o1.firstTime)
                 R.id.size_sort -> o2.size.compareTo(o1.size)
@@ -165,23 +174,22 @@ class AppsActivity : android.support.v7.app.AppCompatActivity() {
                 else -> 0
             }
         })
-
-        updateData(mAppList)
-        recycler.snackBar(item?.title.toString())
-        return super.onOptionsItemSelected(item)
+        runOnUiThread {
+            updateData()
+            recycler.snackBar("按${title}排序")
+        }
     }
 
-    private fun updateData(sortedWith: List<AppItem>, adapter: RecyclerAdapter = recycler.adapter as RecyclerAdapter) {
+    private fun updateData(sortedWith: List<AppItem> = mAppList, adapter: RecyclerAdapter = recycler.adapter as RecyclerAdapter) {
         mList.clear()
         mList.add(b)
         mList.addAll(sortedWith)
         mIsAll = true
-        adapter.setData(mList)
         adapter.notifyDataSetChanged()
         supportActionBar?.title = "应用：${mList.size - 1}"
     }
 
-    //狂立flag
+    //狂立flag 获取应用信息
     val mFlag = (GET_ACTIVITIES
             or GET_SIGNATURES
             or GET_SERVICES
@@ -191,16 +199,17 @@ class AppsActivity : android.support.v7.app.AppCompatActivity() {
             or GET_URI_PERMISSION_PATTERNS
             or GET_PERMISSIONS)
 
-    private fun getAppList(list: MutableList<AppItem>) =
-            packageManager.run {
-                getInstalledPackages(mFlag)
-                        //使用fold 因为可以遍历同时返回其他类型
-                        .fold(list) { cl, p ->
-                            cl.add(createAppItem(p))
-                            cl
+    private fun updateAppList() =
+            packageManager.getInstalledPackages(mFlag)
+                    .forEach { p ->
+                        val element = createAppItem(p)
+                        mList.add(element)
+                        mAppList.add(element)
+                        runOnUiThread {
+                            recycler.adapter.notifyItemInserted(mList.size - 1)
+                            supportActionBar?.title = "应用：${mList.size - 1}"
                         }
-
-            }
+                    }
 
 
     private fun createAppItem(p: PackageInfo, b: ApplicationInfo = p.applicationInfo, m: PackageManager = packageManager): AppItem {
