@@ -11,27 +11,27 @@ import android.content.pm.PackageManager
 import android.content.pm.PackageManager.*
 import android.net.Uri
 import android.support.v7.app.AlertDialog
+import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.DividerItemDecoration
 import android.support.v7.widget.LinearLayoutManager
+import android.support.v7.widget.SearchView
 import android.view.Menu
 import android.view.MenuItem
+import android.view.inputmethod.EditorInfo
 import kotlinx.android.synthetic.main.activity_apps.*
 import kotlinx.android.synthetic.main.item_app.view.*
-import kotlinx.android.synthetic.main.item_switch.view.*
-import san.santools.R
-import san.santools.RecyclerAdapter
-import san.santools.snackBar
+import kotlinx.android.synthetic.main.item_switch.*
+import san.santools.*
 import java.io.File
 import java.text.Collator
 import java.util.*
 import kotlin.concurrent.thread
 
 
-class AppsActivity : android.support.v7.app.AppCompatActivity() {
+class AppsActivity : AppCompatActivity() {
 
-    private val mList = mutableListOf<Any>()
+    private val mList = mutableListOf<AppItem>()
     private val mAppList = mutableListOf<AppItem>()
-    private val b: String = "应用"
     private var mIsAll = true
 
     /**
@@ -42,11 +42,16 @@ class AppsActivity : android.support.v7.app.AppCompatActivity() {
             when (intent?.action) {
                 Intent.ACTION_PACKAGE_REMOVED -> {
                     recycler.snackBar("卸载${intent.dataString ?: "empty"}")
+                    mList.forEach {
+                        if ("package:${it.packageName}" == intent.dataString) {
+                            val indexOf = mList.indexOf(it)
+                            mList.remove(it)
+                            recycler.adapter.notifyItemRemoved(indexOf)
+                        }
+                    }
                     mAppList.forEach {
                         if ("package:${it.packageName}" == intent.dataString) {
-                            val indexOf = mAppList.indexOf(it)
-                            mAppList.remove(it)
-                            recycler.adapter.notifyItemRemoved(indexOf + 1)
+                            mList.remove(it)
                         }
                     }
                 }
@@ -56,8 +61,8 @@ class AppsActivity : android.support.v7.app.AppCompatActivity() {
                     info.run {
                         val element = createAppItem(info)
                         mAppList.add(0, element)
-                        mList.add(1, element)
-                        recycler.adapter.notifyItemInserted(1)
+                        mList.add(0, element)
+                        recycler.adapter.notifyItemInserted(0)
                     }
                 }
             }
@@ -73,72 +78,82 @@ class AppsActivity : android.support.v7.app.AppCompatActivity() {
             addItemDecoration(DividerItemDecoration(this@AppsActivity, DividerItemDecoration.VERTICAL))
             layoutManager = LinearLayoutManager(this@AppsActivity)
             adapter = RecyclerAdapter().apply {
-                registBinder(AppItem::class.java, R.layout.item_app, { holder, item ->
-                    holder.itemView.run {
-                        app_name.text = "${item.name} \n ${item.size} b\n ${item.versionCode} \n ${item.versionName}"
-                        app_icon.setImageDrawable(item.icon)
+                registBinder(AppItem::class.java, R.layout.item_app, object : ViewBinder() {
+                    override fun onBindView(holder: RecyclerViewHolder) {
+                        holder.itemView.run {
+                            val item = holder.getItem<AppItem>()
+                            app_name.text = "${item.name} \n ${item.size} b\n ${item.versionCode} \n ${item.versionName}"
+                            app_icon.setImageDrawable(item.icon)
+                        }
                     }
-                }) { holder ->
-                    holder.itemView.run {
-                        uninstall.setOnClickListener {
-                            val item = holder.get<AppItem>("Item")
-                            val uri = Uri.parse("package:" + item.packageName)
-                            val intent = Intent(Intent.ACTION_DELETE, uri)
-                            this.context.startActivity(intent)
-                        }
-                        info.setOnClickListener {
-                            val item = holder.get<AppItem>("Item")
-                            val intent = Intent("android.settings.APPLICATION_DETAILS_SETTINGS")
-                            intent.data = Uri.parse("package:" + item.packageName)
-                            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                            this.context.startActivity(intent)
-                        }
 
-                        app_name.setOnClickListener {
-                            val item = holder.get<AppItem>("Item")
-                            AlertDialog.Builder(this@AppsActivity).setMessage(item.allInfo).show()
+                    override fun onCreteView(holder: RecyclerViewHolder) {
+                        holder.itemView.run {
+                            uninstall.setOnClickListener {
+                                val item = holder.get<AppItem>("Item")
+                                val uri = Uri.parse("package:" + item.packageName)
+                                val intent = Intent(Intent.ACTION_DELETE, uri)
+                                this.context.startActivity(intent)
+                            }
+                            info.setOnClickListener {
+                                val item = holder.get<AppItem>("Item")
+                                val intent = Intent("android.settings.APPLICATION_DETAILS_SETTINGS")
+                                intent.data = Uri.parse("package:" + item.packageName)
+                                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                this.context.startActivity(intent)
+                            }
+
+                            app_name.setOnClickListener {
+                                val item = holder.get<AppItem>("Item")
+                                AlertDialog.Builder(this@AppsActivity).setMessage(item.allInfo).show()
+                            }
+                            app_icon.setOnClickListener {
+                                val item = holder.get<AppItem>("Item")
+                                item.intent
+                                        ?.run { startActivity(item.intent) }
+                                        ?: run { recycler.snackBar("启动个p") }
+                            }
                         }
-                        app_icon.setOnClickListener {
-                            val item = holder.get<AppItem>("Item")
-                            item.intent
-                                    ?.run { startActivity(item.intent) }
-                                    ?: run { recycler.snackBar("启动个p") }
+                    }
+
+                    override fun onRecyclView(holder: RecyclerViewHolder) {
+                        holder.itemView.swipe.run {
+                            close()
+                        }
+                    }
+
+
+                })
+
+                app_switch.apply {
+                    isChecked.takeIf {
+                        it != mIsAll
+                    }?.run {
+                        setOnCheckedChangeListener(null)
+                        isChecked = mIsAll
+                    }
+                }.setOnCheckedChangeListener { _, isChecked ->
+                    mIsAll = isChecked
+                    if (isChecked) {
+                        updateData()
+                    } else {
+                        mAppList.filter {
+                            !it.isSystemApp
+                        }.run {
+                            updateData(this)
+                            mIsAll = false
                         }
                     }
                 }
 
-                registBinder(String::class.java, R.layout.item_switch, { holder, _ ->
-                    holder.itemView
-                            .app_switch
-                            .apply {
-                                isChecked.takeIf {
-                                    it != mIsAll
-                                }?.run {
-                                    setOnCheckedChangeListener(null)
-                                    isChecked = mIsAll
-                                }
-                            }
-                            .setOnCheckedChangeListener { _, isChecked ->
-                                mIsAll = isChecked
-                                if (isChecked) {
-                                    updateData()
-                                } else {
-                                    mAppList.filter { !it.isSystemApp }
-                                            .run {
-                                                updateData(this)
-                                                mIsAll = false
-                                            }
-                                }
-                            }
-                })
                 setData(mList)
             }
         }
 
         //
         registerReceiver(mReceiver, IntentFilter().apply {
-            addAction(android.content.Intent.ACTION_PACKAGE_ADDED)
-            addAction(android.content.Intent.ACTION_PACKAGE_REMOVED)
+            addAction(Intent.ACTION_PACKAGE_ADDED)
+            addAction(Intent.ACTION_PACKAGE_REMOVED)
             addDataScheme("package")
         })
 
@@ -156,11 +171,29 @@ class AppsActivity : android.support.v7.app.AppCompatActivity() {
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
         menuInflater.inflate(R.menu.app_act_menu, menu)
+        menu?.findItem(R.id.search)?.actionView.run {
+            this as SearchView
+            inputType = EditorInfo.TYPE_CLASS_TEXT
+            imeOptions = EditorInfo.IME_ACTION_SEARCH
+            setOnQueryTextListener(object : SearchView.OnQueryTextListener {
+
+                override fun onQueryTextSubmit(query: String): Boolean {
+                    return false
+                }
+
+                override fun onQueryTextChange(newText: String): Boolean {
+                    val filter = mAppList.filter { it.name.contains(newText) || it.packageName.contains(newText) }
+                    updateData(filter)
+                    return true
+                }
+            })
+        }
         return super.onCreateOptionsMenu(menu)
     }
 
     override fun onOptionsItemSelected(item: MenuItem?): Boolean {
-        item?.run { onItemCall(item.itemId, item.title) }
+        item?.takeIf { item.itemId != R.id.search }
+                ?.run { onItemCall(item.itemId, item.title) }
         return super.onOptionsItemSelected(item)
     }
 
@@ -182,7 +215,6 @@ class AppsActivity : android.support.v7.app.AppCompatActivity() {
 
     private fun updateData(sortedWith: List<AppItem> = mAppList, adapter: RecyclerAdapter = recycler.adapter as RecyclerAdapter) {
         mList.clear()
-        mList.add(b)
         mList.addAll(sortedWith)
         mIsAll = true
         adapter.notifyDataSetChanged()
@@ -307,3 +339,4 @@ class AppsActivity : android.support.v7.app.AppCompatActivity() {
                     ""
 
 }
+

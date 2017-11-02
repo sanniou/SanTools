@@ -12,24 +12,19 @@ import android.view.ViewGroup
  *version: 1.0
  */
 
-typealias ViewBinder<T> = (RecyclerViewHolder, T) -> Unit
-
-typealias ViewCreators = (RecyclerViewHolder) -> Unit
 
 class RecyclerAdapter : RecyclerView.Adapter<RecyclerViewHolder>() {
     //默认的getCount实现
     private var mOnItemCount: (() -> Int) = { mData.size }
 
     //默认的getViewType实现
-    private var mGetItemViewType: ((position: Int) -> Int) = { mClazzs.indexOf(mData[it].javaClass) }
+    private var mGetItemViewType: ((position: Int) -> Int) = { mClazzs.indexOf(mData[it]::class.java) }
 
     private lateinit var mData: List<Any>
 
     private val mRes = mutableListOf<Int>()
 
-    private val mBinders = mutableListOf<ViewBinder<*>>()
-
-    private val mCreators = mutableListOf<ViewCreators?>()
+    private val mBinders = mutableListOf<ViewBinder>()
 
     private val mClazzs = mutableListOf<Class<out Any>>()
 
@@ -39,12 +34,10 @@ class RecyclerAdapter : RecyclerView.Adapter<RecyclerViewHolder>() {
         mListener = listener
     }
 
-    fun <T : Any> registBinder(clazz: Class<T>, res: Int, binder: ViewBinder<T>, creator: ViewCreators? = null) {
+    fun <T : Any> registBinder(clazz: Class<T>, res: Int, binder: ViewBinder) {
         mRes.add(res)
         mClazzs.add(clazz)
         mBinders.add(binder)
-        mCreators.add(creator)
-
     }
 
 
@@ -55,14 +48,19 @@ class RecyclerAdapter : RecyclerView.Adapter<RecyclerViewHolder>() {
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerViewHolder {
 
         val holder = RecyclerViewHolder(LayoutInflater.from(parent.context).inflate(mRes[viewType], parent, false), mListener)
-        mCreators[viewType]?.invoke(holder)
+        mBinders[viewType].onCreteView(holder)
         return holder
     }
 
     override fun onBindViewHolder(holder: RecyclerViewHolder, position: Int) {
         val item = mData[position]
         holder.put("Item", item)
-        mBinders[holder.itemViewType](holder, item)
+        mBinders[holder.itemViewType].onBindView(holder)
+    }
+
+    override fun onViewRecycled(holder: RecyclerViewHolder) {
+        super.onViewRecycled(holder)
+        mBinders[holder.itemViewType].onRecyclView(holder)
     }
 
     override fun getItemCount() = mOnItemCount()
@@ -84,8 +82,19 @@ class RecyclerViewHolder(itemView: View, private var listener: OnItemClickListen
 
     fun <T> get(key: String) = mMap[key] as T
 
+    fun <T> getItem() = get<T>("Item")
+
 }
 
 interface OnItemClickListener {
     fun onItemClick(holder: RecyclerViewHolder)
+}
+
+abstract class ViewBinder() {
+
+    abstract fun onBindView(holder: RecyclerViewHolder)
+
+    open fun onCreteView(holder: RecyclerViewHolder) {}
+
+    open fun onRecyclView(holder: RecyclerViewHolder) {}
 }
