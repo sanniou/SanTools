@@ -24,6 +24,7 @@ import kotlinx.android.synthetic.main.item_switch.*
 import san.santools.*
 import java.io.File
 import java.text.Collator
+import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.concurrent.thread
 
@@ -42,22 +43,19 @@ class AppsActivity : AppCompatActivity() {
             when (intent?.action) {
                 Intent.ACTION_PACKAGE_REMOVED -> {
                     recycler.snackBar("卸载${intent.dataString ?: "empty"}")
-                    mList.forEach {
-                        if ("package:${it.packageName}" == intent.dataString) {
-                            val indexOf = mList.indexOf(it)
-                            mList.remove(it)
-                            recycler.adapter?.notifyItemRemoved(indexOf)
-                        }
+                    val removeFirst = mAppList.removeFirst {
+                        "package:${it.packageName}" == intent.dataString
                     }
-                    mAppList.forEach {
-                        if ("package:${it.packageName}" == intent.dataString) {
-                            mList.remove(it)
-                        }
+                    if (removeFirst >= 0) {
+                        recycler.adapter?.notifyItemRemoved(removeFirst)
+                    }
+                    mAppList.removeFor {
+                        "package:${it.packageName}" == intent.dataString
                     }
                 }
                 Intent.ACTION_PACKAGE_ADDED -> {
                     recycler.snackBar("安装${intent.dataString ?: "empty"}")
-                    val info = packageManager.getPackageInfo(intent.dataString.substring(8), mFlag)
+                    val info = packageManager.getPackageInfo(intent.dataString?.substring(8), mFlag)
                     info.run {
                         val element = createAppItem(info)
                         mAppList.add(0, element)
@@ -97,8 +95,8 @@ class AppsActivity : AppCompatActivity() {
                             }
                             info.setOnClickListener {
                                 val item = holder.get<AppItem>("Item")
-                                val intent = Intent("android.settings.APPLICATION_DETAILS_SETTINGS")
-                                intent.data = Uri.parse("package:" + item.packageName)
+                                val uri = Uri.parse("package:" + item.packageName)
+                                val intent = Intent("android.settings.APPLICATION_DETAILS_SETTINGS", uri)
                                 intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                                 this.context.startActivity(intent)
                             }
@@ -261,11 +259,11 @@ class AppsActivity : AppCompatActivity() {
     }
 
 
-    private val dateFormat = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+    private val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
 
     private fun allInfo(p: PackageInfo, b: ApplicationInfo) =
-            "firstInstallTime : ${p.firstInstallTime}\n ${dateFormat.format(java.util.Date(p.firstInstallTime))} \n" +
-                    "lastUpdateTime : ${p.lastUpdateTime}\n ${dateFormat.format(java.util.Date(p.lastUpdateTime))} \n" +
+            "firstInstallTime : ${p.firstInstallTime}\n ${dateFormat.format(Date(p.firstInstallTime))} \n" +
+                    "lastUpdateTime : ${p.lastUpdateTime}\n ${dateFormat.format(Date(p.lastUpdateTime))} \n" +
                     "versionName : ${p.versionName}\n" +
                     "versionCode : ${p.versionCode}\n" +
                     "packageName : ${p.packageName}\n" +

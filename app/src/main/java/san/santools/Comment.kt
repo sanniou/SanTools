@@ -3,6 +3,7 @@ package san.santools
 import android.support.design.widget.Snackbar
 import android.util.Log
 import android.view.View
+import java.util.function.Predicate
 
 /**
  *author : jichang
@@ -23,3 +24,28 @@ inline fun <reified T> T.Loge(str: Any) {
     Log.e(T::class.simpleName, str.toString())
 }
 
+
+fun <T> MutableCollection<T>.removeFor(filter: (a: T) -> Boolean): Boolean {
+    var removed = false
+    val each = iterator()
+    while (each.hasNext()) {
+        if (filter.invoke(each.next())) {
+            each.remove()
+            removed = true
+        }
+    }
+    return removed
+}
+
+fun <T> MutableCollection<T>.removeFirst(filter: (a: T) -> Boolean): Int {
+    var removed = 0
+    val each = iterator()
+    while (each.hasNext()) {
+        if (filter.invoke(each.next())) {
+            each.remove()
+            return removed
+        }
+        removed++
+    }
+    return -1
+}
