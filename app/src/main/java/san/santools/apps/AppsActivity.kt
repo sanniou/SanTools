@@ -46,7 +46,7 @@ class AppsActivity : AppCompatActivity() {
                         if ("package:${it.packageName}" == intent.dataString) {
                             val indexOf = mList.indexOf(it)
                             mList.remove(it)
-                            recycler.adapter.notifyItemRemoved(indexOf)
+                            recycler.adapter?.notifyItemRemoved(indexOf)
                         }
                     }
                     mAppList.forEach {
@@ -62,7 +62,7 @@ class AppsActivity : AppCompatActivity() {
                         val element = createAppItem(info)
                         mAppList.add(0, element)
                         mList.add(0, element)
-                        recycler.adapter.notifyItemInserted(0)
+                        recycler.adapter?.notifyItemInserted(0)
                     }
                 }
             }
@@ -238,7 +238,7 @@ class AppsActivity : AppCompatActivity() {
                         mList.add(element)
                         mAppList.add(element)
                         runOnUiThread {
-                            recycler.adapter.notifyItemInserted(mList.size - 1)
+                            recycler.adapter?.notifyItemInserted(mList.size - 1)
                             supportActionBar?.title = "应用：${mList.size - 1}"
                         }
                     }
