@@ -1,32 +1,49 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-  package="san.santools">
+    xmlns:tools="http://schemas.android.com/tools"
+    package="san.santools">
 
-  <application
-    android:allowBackup="true"
-    android:icon="@mipmap/ic_launcher"
-    android:label="@string/app_name"
-    android:roundIcon="@mipmap/ic_launcher_round"
-    android:supportsRtl="true"
-    android:theme="@style/AppTheme">
-    <activity android:name=".apps.AppsActivity">
-      <intent-filter>
-        <action android:name="android.intent.action.MAIN" />
+    <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
 
-        <category android:name="android.intent.category.LAUNCHER" />
-      </intent-filter>
-    </activity>
-    <provider
-      android:authorities="@string/fileProvider"
-      android:exported="false"
-      android:grantUriPermissions="true"
-      android:name="android.support.v4.content.FileProvider">
+    <application
+        android:name=".SanApplication"
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/AppTheme">
+        <activity android:name=".apps.AppsActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
 
-      <!-- 指定Uri的共享路径 -->
-      <meta-data
-        android:name="android.support.FILE_PROVIDER_PATHS"
-        android:resource="@xml/file_paths" />
-    </provider>
-  </application>
-  <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <activity android:name=".apps.ApkOneActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+
+                <data android:scheme="file" />
+                <data android:scheme="content" />
+                <data android:host="*" />
+                <data android:mimeType="application/apk.1" />
+                <data android:mimeType="application/1" />
+            </intent-filter>
+        </activity>
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="@string/fileProvider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+
+            <!-- 指定Uri的共享路径 -->
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+    </application>
+
 </manifest>

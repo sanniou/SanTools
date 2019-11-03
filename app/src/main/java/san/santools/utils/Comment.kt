@@ -1,9 +1,10 @@
-package san.santools
+package san.santools.utils
 
-import android.support.design.widget.Snackbar
+import com.google.android.material.snackbar.Snackbar
 import android.util.Log
 import android.view.View
-import java.util.function.Predicate
+import android.widget.Toast
+import san.santools.SanApplication
 
 /**
  *author : jichang
@@ -24,24 +25,28 @@ inline fun <reified T> T.Loge(str: Any) {
     Log.e(T::class.simpleName, str.toString())
 }
 
+fun toast(str: String) {
+    Toast.makeText(SanApplication.instance, str, Toast.LENGTH_SHORT).show()
+}
 
-fun <T> MutableCollection<T>.removeFor(filter: (a: T) -> Boolean): Boolean {
-    var removed = false
+fun <T> MutableCollection<T>.removeFor(filter: (a: T) -> Boolean): MutableList<T> {
+    val list = mutableListOf<T>()
     val each = iterator()
     while (each.hasNext()) {
-        if (filter.invoke(each.next())) {
+        val next = each.next()
+        if (filter(next)) {
             each.remove()
-            removed = true
+            list.add(next)
         }
     }
-    return removed
+    return list
 }
 
 fun <T> MutableCollection<T>.removeFirst(filter: (a: T) -> Boolean): Int {
     var removed = 0
     val each = iterator()
     while (each.hasNext()) {
-        if (filter.invoke(each.next())) {
+        if (filter(each.next())) {
             each.remove()
             return removed
         }

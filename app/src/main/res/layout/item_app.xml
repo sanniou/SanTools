@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<san.santools.SwipeLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<san.santools.SwipeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/swipe"
     android:layout_width="match_parent"
@@ -18,7 +17,7 @@
             android:layout_height="wrap_content"
             android:foreground="?attr/selectableItemBackground"
             android:padding="5dp"
-            android:text="卸载"/>
+            android:text="卸载" />
 
         <TextView
             android:id="@+id/info"
@@ -26,29 +25,30 @@
             android:layout_height="wrap_content"
             android:foreground="?attr/selectableItemBackground"
             android:padding="5dp"
-            android:text="详情"/>
+            android:text="详情" />
     </LinearLayout>
 
     <LinearLayout
+        android:id="@+id/app_layout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:gravity="center_vertical"
+        android:foreground="?selectableItemBackground"
         android:padding="8dp">
 
         <ImageView
             android:id="@+id/app_icon"
             android:layout_width="60dp"
             android:layout_height="60dp"
-            android:foreground="?attr/selectableItemBackground"/>
+            android:foreground="?actionBarItemBackground" />
 
         <TextView
             android:id="@+id/app_name"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_marginStart="8dp"
-            android:foreground="?attr/selectableItemBackground"
             android:gravity="center_vertical"
             android:textSize="12sp"
-            tools:text="@string/app_name"/>
+            tools:text="@string/app_name" />
     </LinearLayout>
 </san.santools.SwipeLayout>
