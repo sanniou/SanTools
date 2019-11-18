@@ -207,7 +207,7 @@ class AppsActivity : AppCompatActivity() {
         list: MutableList<AppItem>,
         removeOther: ((AppItem) -> Boolean)? = null
     ): List<AppItem> {
-        return if (mShowAll) list.run {
+        val a = if (mShowAll) list.run {
             removeOther?.run {
                 filter { !removeOther(it) }
             } ?: this
@@ -215,6 +215,7 @@ class AppsActivity : AppCompatActivity() {
         else list.run {
             filter { !it.isSystemApp && !(removeOther?.invoke(it) ?: false) }
         }
+        return a.sortedWith(comparator)
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
