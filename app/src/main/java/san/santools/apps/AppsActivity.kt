@@ -33,6 +33,8 @@ import android.view.inputmethod.EditorInfo
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SearchView
+import androidx.core.content.ContextCompat
+import androidx.core.content.pm.PackageInfoCompat
 import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
 import kotlinx.android.synthetic.main.activity_apps.*
@@ -290,11 +292,13 @@ class AppsActivity : AppCompatActivity() {
             b.flags and FLAG_SYSTEM != 0,
             p.firstInstallTime,
             p.lastUpdateTime,
-            p.versionCode,
+            PackageInfoCompat.getLongVersionCode(p),
             p.versionName ?: "",
             p.packageName,
             m.getLaunchIntentForPackage(p.packageName),
-            File(b.publicSourceDir).length(),
+            b.sourceDir?.run {
+                File(this).length()
+            } ?: -1,
             allInfo(p, b)
         )
     }
@@ -464,9 +468,7 @@ class AppsActivity : AppCompatActivity() {
         }
 
         override fun onDetach(holder: RecyclerViewHolder) {
-            holder.itemView.swipe.run {
-                close(false)
-            }
+            holder.itemView.swipe.close(false)
         }
     }
 }
