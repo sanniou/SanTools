@@ -33,7 +33,6 @@ import android.view.inputmethod.EditorInfo
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SearchView
-import androidx.core.content.ContextCompat
 import androidx.core.content.pm.PackageInfoCompat
 import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -47,6 +46,7 @@ import kotlinx.coroutines.withContext
 import san.santools.R
 import san.santools.RecyclerAdapter
 import san.santools.RecyclerViewHolder
+import san.santools.SwipeLayout
 import san.santools.ViewBinder
 import san.santools.utils.AdapterList
 import san.santools.utils.ObservableList
@@ -128,7 +128,9 @@ class AppsActivity : AppCompatActivity() {
     private val mAppList = AdapterList<AppItem>()
     private val mOriginList = ArrayList<AppItem>()
     private var mShowAll = true
+    private var filterKey: String? = null
     private var comparator: AppSortComparator = UpdateTimeSort()
+
     /**
      * 广播
      */
@@ -209,15 +211,18 @@ class AppsActivity : AppCompatActivity() {
         list: MutableList<AppItem>,
         removeOther: ((AppItem) -> Boolean)? = null
     ): List<AppItem> {
-        val a = if (mShowAll) list.run {
-            removeOther?.run {
-                filter { !removeOther(it) }
-            } ?: this
-        }
-        else list.run {
-            filter { !it.isSystemApp && !(removeOther?.invoke(it) ?: false) }
-        }
-        return a.sortedWith(comparator)
+        val apps =
+            if (mShowAll)
+                list.run {
+                    removeOther?.run {
+                        filter { !removeOther(it) }
+                    } ?: this
+                }
+            else
+                list.run {
+                    filter { !it.isSystemApp && !(removeOther?.invoke(it) ?: false) }
+                }
+        return apps.sortedWith(comparator)
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
@@ -233,8 +238,9 @@ class AppsActivity : AppCompatActivity() {
                 }
 
                 override fun onQueryTextChange(newText: String): Boolean {
+                    filterKey = newText
                     mAppList.set(applyShowAll(mOriginList) {
-                        !(it.name.contains(newText) || it.packageName.contains(newText))
+                        !checkKeyword(it, newText)
                     })
                     return true
                 }
@@ -242,6 +248,9 @@ class AppsActivity : AppCompatActivity() {
         }
         return super.onCreateOptionsMenu(menu)
     }
+
+    private fun checkKeyword(it: AppItem, newText: String) =
+        (it.name.contains(newText) || it.packageName.contains(newText))
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         item.takeIf { item.itemId != R.id.search }
@@ -275,7 +284,13 @@ class AppsActivity : AppCompatActivity() {
             val apps = getApps()
             apps.forEach { p ->
                 val element = createAppItem(p)
-                mAppList.add(element)
+                if (!filterKey.isNullOrEmpty()) {
+                    if (checkKeyword(element, filterKey!!)) {
+                        mAppList.add(element)
+                    }
+                } else {
+                    mAppList.add(element)
+                }
                 mOriginList.add(element)
             }
             onItemCall(R.id.update_time_sort, "更新时间")
@@ -439,12 +454,14 @@ class AppsActivity : AppCompatActivity() {
         override fun onCreteView(holder: RecyclerViewHolder) {
             holder.itemView.run {
                 uninstall.setOnClickListener {
+                    closeSwiper(holder, true)
                     val item = holder.get<AppItem>("Item")
                     val uri = Uri.parse("package:" + item.packageName)
                     val intent = Intent(Intent.ACTION_DELETE, uri)
                     this.context.startActivity(intent)
                 }
                 info.setOnClickListener {
+                    closeSwiper(holder, true)
                     val item = holder.get<AppItem>("Item")
                     val uri = Uri.parse("package:" + item.packageName)
                     val intent =
@@ -454,6 +471,7 @@ class AppsActivity : AppCompatActivity() {
                 }
 
                 app_layout.setOnClickListener {
+                    closeSwiper(holder, true)
                     val item = holder.get<AppItem>("Item")
                     AlertDialog.Builder(this@AppsActivity).setMessage(item.allInfo)
                         .show()
@@ -468,7 +486,13 @@ class AppsActivity : AppCompatActivity() {
         }
 
         override fun onDetach(holder: RecyclerViewHolder) {
-            holder.itemView.swipe.close(false)
+            closeSwiper(holder)
+        }
+    }
+
+    private fun closeSwiper(holder: RecyclerViewHolder, smooth: Boolean = true) {
+        if (holder.itemView.swipe.openStatus != SwipeLayout.Status.Close) {
+            holder.itemView.swipe.close(smooth)
         }
     }
 }
