@@ -44,54 +44,24 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import san.santools.R
-import san.santools.RecyclerAdapter
-import san.santools.RecyclerViewHolder
-import san.santools.SwipeLayout
-import san.santools.ViewBinder
+import san.santools.view.recycler.RecyclerAdapter
+import san.santools.view.recycler.RecyclerViewHolder
+import san.santools.view.SwipeLayout
+import san.santools.view.recycler.ViewBinder
 import san.santools.utils.AdapterList
+import san.santools.utils.FirstTimeSort
+import san.santools.utils.NameSort
 import san.santools.utils.ObservableList
 import san.santools.utils.ObservableList.OnListChangedCallback
+import san.santools.utils.SizeSort
+import san.santools.utils.UpdateTimeSort
 import san.santools.utils.removeFirst
 import san.santools.utils.snackBar
 import java.io.File
-import java.text.Collator
 import java.text.SimpleDateFormat
-import java.util.Comparator
 import java.util.Date
 import java.util.Locale
 
-interface AppSortComparator : Comparator<AppItem> {
-    var invert: Boolean
-
-    override fun compare(o1: AppItem, o2: AppItem): Int {
-        var a = o1
-        var b = o2
-        if (invert) {
-            a = b.also { b = a }
-        }
-        return compareField(a, b)
-    }
-
-    fun compareField(o1: AppItem, o2: AppItem): Int
-}
-
-class UpdateTimeSort(override var invert: Boolean = false) : AppSortComparator {
-
-    override fun compareField(o1: AppItem, o2: AppItem) = o2.lastTime.compareTo(o1.lastTime)
-}
-
-class FirstTimeSort(override var invert: Boolean = false) : AppSortComparator {
-    override fun compareField(o1: AppItem, o2: AppItem) = o2.firstTime.compareTo(o1.firstTime)
-}
-
-class SizeSort(override var invert: Boolean = false) : AppSortComparator {
-    override fun compareField(o1: AppItem, o2: AppItem) = o2.size.compareTo(o1.size)
-}
-
-class NameSort(override var invert: Boolean = false) : AppSortComparator {
-    override fun compareField(o1: AppItem, o2: AppItem) =
-        Collator.getInstance(Locale.CHINA).compare(o1.name, o2.name)
-}
 
 class AppsActivity : AppCompatActivity() {
 

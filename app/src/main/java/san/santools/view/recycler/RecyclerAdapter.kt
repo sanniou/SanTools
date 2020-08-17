@@ -1,4 +1,4 @@
-package san.santools
+package san.santools.view.recycler
 
 import android.view.LayoutInflater
 import android.view.View

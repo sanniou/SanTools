@@ -1,4 +1,4 @@
-package san.santools;
+package san.santools.view;
 
 import android.content.Context;
 import android.graphics.Rect;

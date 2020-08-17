@@ -1,6 +1,6 @@
 package san.santools.utils
 
-import san.santools.RecyclerAdapter
+import san.santools.view.recycler.RecyclerAdapter
 
 /**
  * Binding the data relationship between Adapter and ObservableList
