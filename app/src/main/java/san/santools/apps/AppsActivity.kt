@@ -49,11 +49,13 @@ import san.santools.view.recycler.RecyclerViewHolder
 import san.santools.view.SwipeLayout
 import san.santools.view.recycler.ViewBinder
 import san.santools.utils.AdapterList
+import san.santools.utils.AppSortComparator
 import san.santools.utils.FirstTimeSort
 import san.santools.utils.NameSort
 import san.santools.utils.ObservableList
 import san.santools.utils.ObservableList.OnListChangedCallback
 import san.santools.utils.SizeSort
+import san.santools.utils.SpUtil
 import san.santools.utils.UpdateTimeSort
 import san.santools.utils.removeFirst
 import san.santools.utils.snackBar
@@ -61,7 +63,6 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-
 
 class AppsActivity : AppCompatActivity() {
 
@@ -130,7 +131,7 @@ class AppsActivity : AppCompatActivity() {
                 positionStart: Int,
                 itemCount: Int
             ) {
-                supportActionBar?.title = "应用：${sender.size}"
+                setupTitle(sender)
             }
 
             override fun onItemRangeMoved(
@@ -139,7 +140,7 @@ class AppsActivity : AppCompatActivity() {
                 toPosition: Int,
                 itemCount: Int
             ) {
-                supportActionBar?.title = "应用：${sender.size}"
+                setupTitle(sender)
             }
 
             override fun onItemRangeRemoved(
@@ -147,17 +148,20 @@ class AppsActivity : AppCompatActivity() {
                 positionStart: Int,
                 itemCount: Int
             ) {
-                supportActionBar?.title = "应用：${sender.size}"
+                setupTitle(sender)
             }
 
             override fun onChanged(sender: ObservableList<AppItem>) {
-                supportActionBar?.title = "应用：${sender.size}"
+                setupTitle(sender)
             }
         })
 
         app_switch.apply {
+            mShowAll = SpUtil.get("show_all", true)
+            isChecked = mShowAll
             setOnCheckedChangeListener { _, isChecked ->
                 mShowAll = isChecked
+                SpUtil.put("show_all", mShowAll)
                 mAppList.set(applyShowAll(mOriginList))
             }
         }
@@ -175,6 +179,10 @@ class AppsActivity : AppCompatActivity() {
                     registBinder(AppItem::class.java, R.layout.item_app, AppViewBinder())
                 }
         }
+    }
+
+    private fun setupTitle(sender: ObservableList<AppItem>) {
+        supportActionBar?.title = "应用：${sender.size}"
     }
 
     private fun applyShowAll(

@@ -21,14 +21,14 @@ object SpUtil {
         mEditor.apply()
     }
 
-    operator fun <T> get(key: String, any: T): T? {
+    operator fun <T> get(key: String, any: T): T {
         return when (any) {
-            is String -> mSp.getString(key, any) as T?
-            is Int -> mSp.getInt(key, any) as T?
-            is Boolean -> mSp.getBoolean(key, any) as T?
-            is Float -> mSp.getFloat(key, any) as T?
-            is Long -> mSp.getLong(key, any) as T?
-            else -> null
+            is String -> mSp.getString(key, any) as T
+            is Int -> mSp.getInt(key, any) as T
+            is Boolean -> mSp.getBoolean(key, any) as T
+            is Float -> mSp.getFloat(key, any) as T
+            is Long -> mSp.getLong(key, any) as T
+            else -> any
         }
     }
 }
