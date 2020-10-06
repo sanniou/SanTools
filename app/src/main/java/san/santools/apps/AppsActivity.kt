@@ -337,39 +337,47 @@ class AppsActivity : AppCompatActivity() {
             "minSdkVersion : ${b.minSdkVersion}\n" +
             "targetSdkVersion : ${b.targetSdkVersion}\n" +
             "enabled : ${b.enabled}\n" +
-            "activities : ${p.activities
-                ?.fold(StringBuilder()) { str, item ->
-                    str.append(item.name).append("\n")
-                }}\n" +
-            "requestedPermission : ${p.requestedPermissions
-                ?.fold(StringBuffer()) { str, item ->
-                    str.append(item).append("\n")
-                }
+            "activities : ${
+                p.activities
+                    ?.fold(StringBuilder()) { str, item ->
+                        str.append(item.name).append("\n")
+                    }
             }\n" +
-            "permission : ${p.permissions
-                ?.fold(StringBuffer()) { str, item ->
-                    str.append(item.name).append("\n")
-                }
+            "requestedPermission : ${
+                p.requestedPermissions
+                    ?.fold(StringBuffer()) { str, item ->
+                        str.append(item).append("\n")
+                    }
             }\n" +
-            "services : ${p.services
-                ?.fold(StringBuffer()) { str, item ->
-                    str.append(item.name).append("\n")
-                }
+            "permission : ${
+                p.permissions
+                    ?.fold(StringBuffer()) { str, item ->
+                        str.append(item.name).append("\n")
+                    }
             }\n" +
-            "receivers : ${p.receivers
-                ?.fold(StringBuffer()) { str, item ->
-                    str.append(item.name).append("\n")
-                }
+            "services : ${
+                p.services
+                    ?.fold(StringBuffer()) { str, item ->
+                        str.append(item.name).append("\n")
+                    }
             }\n" +
-            "providers : ${p.providers
-                ?.fold(StringBuffer()) { str, item ->
-                    str.append(item.name).append("\n")
-                }
+            "receivers : ${
+                p.receivers
+                    ?.fold(StringBuffer()) { str, item ->
+                        str.append(item.name).append("\n")
+                    }
             }\n" +
-            "signatures : ${p.signatures
-                ?.fold(StringBuffer()) { str, item ->
-                    str.append(item.toCharsString()).append("\n")
-                }
+            "providers : ${
+                p.providers
+                    ?.fold(StringBuffer()) { str, item ->
+                        str.append(item.name).append("\n")
+                    }
+            }\n" +
+            "signatures : ${
+                p.signatures
+                    ?.fold(StringBuffer()) { str, item ->
+                        str.append(item.toCharsString()).append("\n")
+                    }
             }\n" +
             ""
 
@@ -422,10 +430,18 @@ class AppsActivity : AppCompatActivity() {
                 val item = holder.getItem<AppItem>()
                 app_name.text =
                     "${item.name} \n " +
-                        "size:${item.size} b\n " +
+                        "size:${getSize(item)}\n " +
                         "version:${item.versionCode} \n " +
                         "version:${item.versionName}"
                 app_icon.setImageDrawable(item.icon)
+            }
+        }
+
+        private fun getSize(item: AppItem): String {
+            return when (item.size) {
+                in 0..1024 -> "${item.size} b"
+                in 1024..1024 * 1024 -> "${String.format("%.2f", item.size / 1024.0)} Kb"
+                else -> "${String.format("%.2f", item.size / 1024.0 / 1024.0)} Mb"
             }
         }
 
